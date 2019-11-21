@@ -4,102 +4,117 @@ const jwt = require("jsonwebtoken");
 const bcrypt = require("bcrypt");
 
 const keys = require("../config/keys");
-const { checkToken } = require("../middleware");
+const { checkToken, asyncMiddleware } = require("../middleware");
 const User = require("../models/UserModel");
 
 const createToken = (user, secret, expiresIn) => {
-  const { _id, username, email } = user;
+  const { _id } = user;
   return jwt.sign({ _id }, secret, { expiresIn });
 };
 
-authRouter.post("/signup", (req, res, next) => {
-  const { username, email, password, passwordValidation } = req.body;
-  if (!username || !email || !password || !passwordValidation) {
-    return res.status(400).json({
-      success: false,
-      message: "Please, fill in all required information."
-    });
-  }
-  if (password !== passwordValidation) {
-    return res
-      .status(400)
-      .json({ success: false, message: "Passwords must be equal." });
-  }
-  if (password < 6) {
-    return res.status(400).json({
-      success: false,
-      message: "Password must be at least 6 characters long."
-    });
-  }
-
-  User.findOne({ username: username }, (err, user) => {
-    if (user) {
-      return res
-        .status(401)
-        .json({ success: false, message: "This username already exists." });
+authRouter.post(
+  "/signup",
+  asyncMiddleware(async (req, res, next) => {
+    const { username, email, password, passwordValidation } = req.body;
+    if (!username || !email || !password || !passwordValidation) {
+      return next({
+        status: 400,
+        message: "Please, fill in all required information."
+      });
+    }
+    if (password !== passwordValidation) {
+      return next({
+        status: 400,
+        message: "Passwords must be equal."
+      });
+    }
+    if (password < 6) {
+      return next({
+        status: 400,
+        message: "Password must be at least 6 characters long."
+      });
     }
 
-    User.findOne({ email: email }, (err, user) => {
-      if (user) {
-        return res
-          .status(401)
-          .json({ success: false, message: "This email already exists." });
-      }
-      new User({
-        username,
-        email,
-        password
-      })
-        .save()
-        .then(newUser => {
-          console.log(newUser);
-          res
-            .status(201)
-            .send({ token: createToken(newUser, keys.jwt.secret, "1hr") });
-        })
-        .catch(err => {
-          res.status(400).json(err.errors);
-        });
-    });
-  });
-});
-
-authRouter.post("/login", (req, res, next) => {
-  const { username, password } = req.body;
-  User.findOne({ username }).then(user => {
-    if (!user) {
-      return res
-        .status(404)
-        .json({ success: false, message: "User not found." });
+    const userByName = await User.findOne({ username: username });
+    if (userByName) {
+      return next({
+        status: 403,
+        message: "This username already exists."
+      });
     }
-    bcrypt.compare(password, user.password).then(isValid => {
-      if (!isValid) {
-        return res
-          .status(400)
-          .json({ success: false, message: "Invalid password." });
-      }
-      res
-        .status(200)
-        .send({ token: createToken(user, keys.jwt.secret, "1hr") });
-    });
-  });
-});
 
-authRouter.get("/currentUser", checkToken, (req, res, next) => {
-  User.findById(req.user._id).then(user => {
+    const userByEmail = await User.findOne({ email: email });
+    if (userByEmail) {
+      return next({
+        status: 403,
+        message: "This email is already in use."
+      });
+    }
+    const newUser = await new User({
+      usernames,
+      email,
+      password
+    }).save();
+    console.log(newUser);
+    res
+      .status(201)
+      .send({ token: createToken(newUser, keys.jwt.secret, "1hr") });
+  })
+);
+
+authRouter.post(
+  "/login",
+  asyncMiddleware(async (req, res, next) => {
+    const { username, password } = req.body;
+    if (!username || !password) {
+      return next({
+        status: 400,
+        message: "Please, fill in all required information."
+      });
+    }
+    const user = await User.findOne({ username });
+
     if (!user) {
-      return res.status(404).json({
-        success: false,
+      next({
+        status: 404,
+        message: "User not found."
+      });
+    }
+    const isValid = await bcrypt.compare(password, user.password);
+    if (!isValid) {
+      return next({
+        status: 400,
+        message: "Invalid password."
+      });
+    }
+    res.status(200).json({
+      success: true,
+      token: createToken(user, keys.jwt.secret, "1hr")
+    });
+  })
+);
+
+authRouter.get(
+  "/currentUser",
+  checkToken,
+  asyncMiddleware(async (req, res, next) => {
+    const user = await User.findById(req.user._id);
+    if (!user) {
+      return next({
+        status: 404,
         message: "User not found."
       });
     }
     res.status(200).json({
-      _id: user._id,
-      username: user.username,
-      email: user.email,
-      avatar: user.avatar
+      success: true,
+      user: {
+        _id: user._id,
+        username: user.username,
+        email: user.email,
+        avatar: user.avatar
+      }
     });
-  });
-});
+  })
+);
 
 module.exports = authRouter;

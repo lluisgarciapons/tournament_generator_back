@@ -4,8 +4,10 @@ const bodyParser = require("body-parser");
 const cors = require("cors");
 
 const keys = require("./config/keys");
+const { checkToken, errorHandler } = require("./middleware");
 const authRouter = require("./api/authRouter");
 const tournamentRouter = require("./api/tournamentRouter");
+const teamRouter = require("./api/teamRouter");
 
 const app = express();
 
@@ -28,5 +30,8 @@ mongoose.connection.once("open", () => {
 
 app.use("/auth", authRouter);
 app.use("/tournament", tournamentRouter);
+app.use("/teams", teamRouter);
+
+app.use(errorHandler);
 
 app.listen(5000, () => console.log("Now listening for requests on port 5000"));

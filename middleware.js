@@ -38,8 +38,13 @@ errorHandler = function(err, req, res, next) {
   res.status(err.status || 400).send(err.message);
 };
 
+const asyncMiddleware = fn => (req, res, next) => {
+  Promise.resolve(fn(req, res, next)).catch(next);
+};
+
 module.exports = {
   checkToken,
   checkAdmin,
-  errorHandler
+  errorHandler,
+  asyncMiddleware
 };
