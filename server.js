@@ -5,6 +5,7 @@ const cors = require("cors");
 
 const keys = require("./config/keys");
 const authRouter = require("./api/authRouter");
+const tournamentRouter = require("./api/tournamentRouter");
 
 const app = express();
 
@@ -26,5 +27,6 @@ mongoose.connection.once("open", () => {
 });
 
 app.use("/auth", authRouter);
+app.use("/tournament", tournamentRouter);
 
 app.listen(5000, () => console.log("Now listening for requests on port 5000"));
