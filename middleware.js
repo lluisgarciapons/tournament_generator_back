@@ -1,5 +1,7 @@
 let jwt = require("jsonwebtoken");
 const keys = require("./config/keys.js");
+const Tournament = require("./models/TournamentModel");
+const Team = require("./models/TeamModel");
 
 let checkToken = (req, res, next) => {
   let token = req.headers["x-access-token"] || req.headers["authorization"]; // Express headers are auto converted to lowercase
@@ -28,14 +30,29 @@ let checkToken = (req, res, next) => {
   });
 };
 
-let checkAdmin = (req, res, next) => {
-  //TODO
+let checkAdmin = async (req, res, next) => {
+  const model = req.params.tournamentId ? Tournament : Team;
+  const id = req.params.tournamentId
+    ? req.params.tournamentId
+    : req.params.teamId;
+  const event = await model.findById(id);
+
+  if (event.admin != req.user._id) {
+    return next({
+      status: 401,
+      message: "You are not authorized to modify this event"
+    });
+  }
+  return next();
 };
 
 errorHandler = function(err, req, res, next) {
   // console.error(err.stack);
   console.error(err);
-  res.status(err.status || 400).send(err.message);
+  res.status(err.status || 400).send({
+    success: false,
+    message: err._message || err.message
+  });
 };
 
 const asyncMiddleware = fn => (req, res, next) => {

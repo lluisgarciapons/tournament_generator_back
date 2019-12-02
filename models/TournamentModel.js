@@ -6,7 +6,7 @@ const TournamentSchema = new mongoose.Schema({
     required: true,
     unique: true,
     trim: true,
-    maxlength: 20,
+    maxlength: 30,
     minlength: 3
   },
   passcode: {
@@ -20,23 +20,21 @@ const TournamentSchema = new mongoose.Schema({
     type: String,
     default: "OPEN"
   },
-  teamlessPlayers: {
-    type: [
-      {
-        joinDate: {
-          type: Date,
-          default: Date.now()
-        },
-        player: {
-          type: mongoose.Schema.Types.ObjectId,
-          ref: "User"
-        }
+  teamlessPlayers: [
+    {
+      joinDate: {
+        type: Date,
+        default: Date.now()
+      },
+      player: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: "User",
+        unique: true
       }
-    ]
-  },
+    }
+  ],
   games: {
-    type: [mongoose.Schema.Types.ObjectId],
-    ref: "Game"
+    type: [{ type: mongoose.Schema.Types.ObjectId, ref: "Game" }]
   },
   winner: {
     type: mongoose.Schema.Types.ObjectId,

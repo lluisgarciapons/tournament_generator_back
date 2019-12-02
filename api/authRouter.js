@@ -51,14 +51,15 @@ authRouter.post(
       });
     }
     const newUser = await new User({
-      usernames,
+      username,
       email,
       password
     }).save();
     console.log(newUser);
-    res
-      .status(201)
-      .send({ token: createToken(newUser, keys.jwt.secret, "1hr") });
+    res.status(201).send({
+      success: true,
+      token: createToken(newUser, keys.jwt.secret, "24h")
+    });
   })
 );
 
@@ -89,7 +90,7 @@ authRouter.post(
     }
     res.status(200).json({
       success: true,
-      token: createToken(user, keys.jwt.secret, "1hr")
+      token: createToken(user, keys.jwt.secret, "24h")
     });
   })
 );
@@ -99,12 +100,14 @@ authRouter.get(
   checkToken,
   asyncMiddleware(async (req, res, next) => {
     const user = await User.findById(req.user._id);
+
     if (!user) {
       return next({
         status: 404,
         message: "User not found."
       });
     }
+    console.log(user);
     res.status(200).json({
       success: true,
       user: {

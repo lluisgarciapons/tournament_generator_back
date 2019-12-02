@@ -16,11 +16,15 @@ const TeamSchema = new mongoose.Schema({
     maxlength: 3,
     minlength: 3
   },
-  gamePlayers: {
-    type: [mongoose.Schema.Types.ObjectId],
-    ref: "GamePlayer"
+  tournament: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: "Tournament"
   },
-  creator: {
+  teamPlayers: [{ type: mongoose.Schema.Types.ObjectId, ref: "TeamPlayer" }],
+
+  gameTeams: [{ type: mongoose.Schema.Types.ObjectId, ref: "GameTeam" }],
+
+  admin: {
     type: mongoose.Schema.Types.ObjectId,
     ref: "User"
   },

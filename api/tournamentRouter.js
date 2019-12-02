@@ -4,23 +4,33 @@ const jwt = require("jsonwebtoken");
 const bcrypt = require("bcrypt");
 
 const keys = require("../config/keys");
-const { checkToken, asyncMiddleware } = require("../middleware");
+const { checkToken, asyncMiddleware, checkAdmin } = require("../middleware");
 const Tournament = require("../models/TournamentModel");
+const User = require("../models/UserModel");
+const TeamPlayer = require("../models/TeamPlayerModel");
 
+// Get all tournaments
+// Public
 tournamentRouter.get(
   "/",
   asyncMiddleware(async (req, res) => {
-    const tournaments = await Tournament.find({});
+    const tournaments = await Tournament.find({}, null, {
+      sort: "creationDate"
+    });
 
     return res.json({ success: true, tournaments });
   })
 );
 
+// Create a new tournament
+// Private
 tournamentRouter.post(
   "/",
   checkToken,
   asyncMiddleware(async (req, res) => {
     const { title, passcode } = req.body;
+    const user = await User.findById(req.user._id);
+
     if (!title || !passcode) {
       return next({
         status: 400,
@@ -28,12 +38,17 @@ tournamentRouter.post(
       });
     }
 
+    // Save the new tournament
     const newTournament = await new Tournament({
       title,
       passcode,
       admin: req.user,
       teamlessPlayers: [{ player: req.user }]
     }).save();
+
+    // Add the new tournament Id to the user
+    user.tournaments.push(newTournament._id);
+    await user.save();
 
     res.status(201).json({
       success: true,
@@ -42,17 +57,181 @@ tournamentRouter.post(
   })
 );
 
+// Get tournaments by their state
+// Public
 tournamentRouter.get(
   "/state/:state",
   asyncMiddleware(async (req, res) => {
-    const tournaments = await Tournament.find({
-      state: req.params.state.toUpperCase()
-    });
+    const tournaments = await Tournament.find(
+      {
+        state: req.params.state.toUpperCase()
+      },
+      null,
+      { sort: "creationDate" }
+    );
 
     res.status(200).json({
       success: true,
       tournaments
     });
+  })
+);
+
+// Joining a tournament as a User
+// Private
+tournamentRouter.put(
+  "/join/:tournamentId",
+  checkToken,
+  asyncMiddleware(async (req, res, next) => {
+    let tournament = await Tournament.findById(req.params.tournamentId);
+    let user = await User.findById(req.user._id);
+    if (!tournament) {
+      return next({
+        status: 404,
+        message: "This tournaments does not exist"
+      });
+    }
+
+    if (!tournament.state === "OPEN") {
+      return next({
+        status: 403,
+        message: "The registration to this tournament it's already closed."
+      });
+    }
+
+    const isInTournament = user.tournaments.some(tournament => {
+      return tournament == tournamentId;
+    });
+    if (isInTournament) {
+      return next({
+        status: 403,
+        message: "You are already in this tournament"
+      });
+    }
+
+    // Save user in tournament
+    tournament.teamlessPlayers.push({ player: req.user._id });
+    const updatedTournament = await tournament.save();
+
+    // Save tournament Id in user
+    user.tournaments.push(updatedTournament._id);
+    await user.save();
+
+    res.json({
+      success: true,
+      tournament: updatedTournament
+    });
+  })
+);
+
+// Start a tournament
+// Private ADMIN
+tournamentRouter.put(
+  "/startTournament/:tournamentId",
+  checkToken,
+  checkAdmin,
+  asyncMiddleware(async (req, res, next) => {
+    const { tournamentId } = req.params;
+    const tournament = await Tournament.findById(req.params.tournamentId);
+    if (!tournament) {
+      return next({
+        status: 404,
+        nessage: "This tournament does not exist."
+      });
+    }
+    tournament.state = "ONGOING";
+
+    // Delete tournament from users in teamlessPlayers
+    tournament.teamlessPlayers.forEach(async player => {
+      let user = await User.findById(player.player);
+      var index = user.tournaments.indexOf(tournamentId);
+      if (index > -1) {
+        user.splice(index, 1);
+      }
+      await user.save();
+    });
+
+    // Delete remaining teamlessPlayers from tournament
+    tournament.teamlessPlayers = [];
+    const startedTournament = await tournament.save();
+    res.json({
+      success: true,
+      tournament: startedTournament
+    });
+  })
+);
+
+// Leave a tournament
+// Private
+tournamentRouter.put(
+  "/leave/:tournamentId",
+  checkToken,
+  asyncMiddleware(async (req, res, next) => {
+    const { tournamentId } = req.params;
+    const tournament = await Tournament.findById(req.params.tournamentId);
+    const user = await User.findById(req.user._id);
+
+    if (!tournament) {
+      return next({
+        status: 404,
+        message: "This tournament does not exist."
+      });
+    }
+
+    if (tournament.admin == user._id) {
+      return next({
+        status: 403,
+        message: "You can't leave as you are the ADMIN of this tournament."
+      });
+    }
+
+    const isInATeam = user.teamPlayers.some(async tp => {
+      let teamPlayer = await TeamPlayer.findById(tp);
+      return teamPlayer.player == user._id;
+    });
+    if (isInATeam) {
+      return next({
+        status: 403,
+        message: "You can't leave this tournament as you are already in a team."
+      });
+    }
+
+    const isInThisTournament = tournament.teamlessPlayers.includes(user._id);
+    if (!isInThisTournament) {
+      return next({
+        status: 403,
+        message: "You are not part of this tournament."
+      });
+    }
+
+    // Delete tournament from user
+    var index = user.tournaments.indexOf(tournamentId);
+    if (index > -1) {
+      user.splice(index, 1);
+    }
+    await user.save();
+
+    // Delete remaining teamlessPlayers from tournament
+    var i = tournament.teamlessPlayers.indexOf(req.user._id);
+    if (i > -1) {
+      tournament.teamlessPlayers.splice(i, 1);
+    }
+    await tournament.save();
+    res.json({
+      success: true,
+      message: "You left the tournament successfully."
+    });
+  })
+);
+
+// Delete a tournament
+// Pivate ADMIN
+tournamentRouter.delete(
+  "/delete/:tournamentId",
+  checkToken,
+  checkAdmin,
+  asyncMiddleware(async (req, res, next) => {
+    // TODO delete tournament and everything related to it.
   })
 );
 

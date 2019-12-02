@@ -26,14 +26,9 @@ const UserSchema = new mongoose.Schema({
     type: Date,
     default: Date.now()
   },
-  gamePlayers: {
-    type: [mongoose.Schema.Types.ObjectId],
-    ref: "GamePlayer"
-  },
-  tournaments: {
-    type: [mongoose.Schema.Types.ObjectId],
-    ref: "Tournament"
-  }
+  teamPlayers: [{ type: mongoose.Schema.Types.ObjectId, ref: "TeamPlayer" }],
+
+  tournaments: [{ type: mongoose.Schema.Types.ObjectId, ref: "Tournament" }]
 });
 
 // Create and add avatar to user

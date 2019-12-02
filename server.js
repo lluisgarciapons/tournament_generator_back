@@ -29,7 +29,7 @@ mongoose.connection.once("open", () => {
 });
 
 app.use("/auth", authRouter);
-app.use("/tournament", tournamentRouter);
+app.use("/tournaments", tournamentRouter);
 app.use("/teams", teamRouter);
 
 app.use(errorHandler);
