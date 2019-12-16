@@ -26,7 +26,7 @@ const UserSchema = new mongoose.Schema({
     type: Date,
     default: Date.now()
   },
-  teamPlayers: [{ type: mongoose.Schema.Types.ObjectId, ref: "TeamPlayer" }],
+  // teamPlayers: [{ type: mongoose.Schema.Types.ObjectId, ref: "TeamPlayer" }],
 
   tournaments: [{ type: mongoose.Schema.Types.ObjectId, ref: "Tournament" }]
 });

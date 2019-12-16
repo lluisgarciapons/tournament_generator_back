@@ -1,10 +1,11 @@
 const express = require("express");
 const teamRouter = express.Router();
 const { checkToken, asyncMiddleware, checkAdmin } = require("../middleware");
+const { removeTeamLessPlayer } = require("./methods");
 const Team = require("../models/TeamModel");
 const Tournament = require("../models/TournamentModel");
 const User = require("../models/UserModel");
-const TeamPlayer = require("../models/TeamPlayerModel");
+// const TeamPlayer = require("../models/TeamPlayerModel");
 
 // Get all teams
 // Public
@@ -26,9 +27,7 @@ teamRouter.post(
     const { tournamentId } = req.params;
     const { name, abbr } = req.body;
     const tournament = await Tournament.findById(tournamentId);
-    console.log(tournament);
     const user = await User.findById(req.user._id);
-    console.log(user);
 
     const isPlayerInTournament = tournament.teamlessPlayers.some(player => {
       return player.player == req.user._id;
@@ -62,20 +61,9 @@ teamRouter.post(
       name,
       abbr,
       tournament: tournamentId,
-      admin: req.user._id
+      players: [user._id],
+      admin: user._id
     }).save();
-
-    // Create a TeamPlayer with the user logged in
-    const newTeamPlayer = await new TeamPlayer({
-      player: req.user._id,
-      team: newTeam
-    }).save();
-
-    // Push new TeamPlayer to the new team created
-    newTeam.teamPlayers.push(newTeamPlayer._id);
-
-    // Push new TeamPlayer to the user
-    user.teamPlayers.push(newTeamPlayer._id);
 
     // delete TeamlessPlayer from list when creating a TeamPlayer
     var index = tournament.teamlessPlayers.indexOf(user._id);
@@ -100,23 +88,45 @@ teamRouter.put("/join/:teamId/:userId"),
   checkToken,
   checkAdmin,
   asyncMiddleware(async (req, res, next) => {
-    //TODO join a team
     const { teamId, userId } = req.params;
 
     const user = await User.findById(userId).populate("teamPlayers");
     const team = await Team.findById(teamId);
     const tournament = await Tournament.findById(team.tournament);
 
-    console.log(user);
+    const isAlreadyInATeam = await Team.find({ players: user._id });
+
+    if (isAlreadyInATeam) {
+      next({
+        status: 403,
+        message: "This user is already in a team."
+      });
+    }
 
     if (!tournament.teamlessPlayers.includes(userId)) {
       next({
-        status: 403,
+        status: 404,
         message: "This user does not belong to this tournament."
       });
     }
 
-    const isAlreadyInATeam = user.teamPlayers.some();
+    if (Team.players.length == 2) {
+      next({
+        status: 403,
+        message: "Your team is full."
+      });
+    }
+
+    Team.players.push(userId);
+    let newTeam = await Team.save();
+
+    // delete TeamlessPlayer from list when creating a TeamPlayer
+    removeTeamLessPlayer(tournament, user);
+
+    res.json({
+      success: true,
+      team: newTeam
+    });
   });
 
 module.exports = teamRouter;

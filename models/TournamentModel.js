@@ -33,9 +33,9 @@ const TournamentSchema = new mongoose.Schema({
       }
     }
   ],
-  games: {
-    type: [{ type: mongoose.Schema.Types.ObjectId, ref: "Game" }]
-  },
+  // games: {
+  //   type: [{ type: mongoose.Schema.Types.ObjectId, ref: "Game" }]
+  // },
   winner: {
     type: mongoose.Schema.Types.ObjectId,
     ref: "Team"

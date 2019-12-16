@@ -5,9 +5,10 @@ const bcrypt = require("bcrypt");
 
 const keys = require("../config/keys");
 const { checkToken, asyncMiddleware, checkAdmin } = require("../middleware");
+const { removeUserFromTournament } = require("./methods");
 const Tournament = require("../models/TournamentModel");
 const User = require("../models/UserModel");
-const TeamPlayer = require("../models/TeamPlayerModel");
+const Team = require("../models/TeamModel");
 
 // Get all tournaments
 // Public
@@ -43,12 +44,12 @@ tournamentRouter.post(
       title,
       passcode,
       admin: req.user,
-      teamlessPlayers: [{ player: req.user }]
+      teamlessPlayers: [{ player: req.user._id }]
     }).save();
 
     // Add the new tournament Id to the user
     user.tournaments.push(newTournament._id);
-    await user.save();
+    user.save();
 
     res.status(201).json({
       success: true,
@@ -88,7 +89,7 @@ tournamentRouter.put(
     if (!tournament) {
       return next({
         status: 404,
-        message: "This tournaments does not exist"
+        message: "This tournaments does not exist."
       });
     }
 
@@ -99,13 +100,17 @@ tournamentRouter.put(
       });
     }
 
-    const isInTournament = user.tournaments.some(tournament => {
-      return tournament == tournamentId;
-    });
+    const isInTournament =
+      user.tournaments.some(tournmnt => {
+        return tournmnt.equals(tournament._id);
+      }) ||
+      tournament.teamlessPlayers.some(teamlessPlayer => {
+        return teamlessPlayer.player.equals(user._id);
+      });
     if (isInTournament) {
       return next({
         status: 403,
-        message: "You are already in this tournament"
+        message: "You are already in this tournament."
       });
     }
 
@@ -137,6 +142,13 @@ tournamentRouter.put(
       return next({
         status: 404,
         nessage: "This tournament does not exist."
+      });
+    }
+
+    if (tournament.state != "OPEN") {
+      return next({
+        status: 403,
+        nessage: "This tournament has already started."
       });
     }
     tournament.state = "ONGOING";
@@ -178,16 +190,18 @@ tournamentRouter.put(
       });
     }
 
-    if (tournament.admin == user._id) {
+    if (tournament.admin.equals(user._id)) {
       return next({
         status: 403,
         message: "You can't leave as you are the ADMIN of this tournament."
       });
     }
 
-    const isInATeam = user.teamPlayers.some(async tp => {
-      let teamPlayer = await TeamPlayer.findById(tp);
-      return teamPlayer.player == user._id;
+    const tournamentTeams = await Team.find({ tournament: tournamentId });
+    const isInATeam = tournamentTeams.some(team => {
+      return team.players.some(player => {
+        return player.equals(user._id);
+      });
     });
     if (isInATeam) {
       return next({
@@ -196,7 +210,11 @@ tournamentRouter.put(
       });
     }
 
-    const isInThisTournament = tournament.teamlessPlayers.includes(user._id);
+    const isInThisTournament = tournament.teamlessPlayers.some(
+      teamlessPlayer => {
+        return teamlessPlayer.player.equals(user._id);
+      }
+    );
     if (!isInThisTournament) {
       return next({
         status: 403,
@@ -204,19 +222,8 @@ tournamentRouter.put(
       });
     }
 
-    // Delete tournament from user
-    var index = user.tournaments.indexOf(tournamentId);
-    if (index > -1) {
-      user.splice(index, 1);
-    }
-    await user.save();
+    removeUserFromTournament(tournament, user);
 
-    // Delete remaining teamlessPlayers from tournament
-    var i = tournament.teamlessPlayers.indexOf(req.user._id);
-    if (i > -1) {
-      tournament.teamlessPlayers.splice(i, 1);
-    }
-    await tournament.save();
     res.json({
       success: true,
       message: "You left the tournament successfully."
@@ -232,6 +239,25 @@ tournamentRouter.delete(
   checkAdmin,
   asyncMiddleware(async (req, res, next) => {
     // TODO delete tournament and everything related to it.
+    const tournament = await Tournament.findById(req.params.tournamentId);
+    if (!tournament) {
+      next({
+        status: 404,
+        message: "This tournament does not exist"
+      });
+    }
+
+    if (tournament.state != "OPEN") {
+      next({
+        status: 403,
+        message:
+          "This tournament can't be deleted because it's either started or finished."
+      });
+    }
+
+    let teams = await Team.find({ tournament: tournamentId });
+
+    teams.forEach(team => {});
   })
 );
 

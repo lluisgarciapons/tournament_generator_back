@@ -9,6 +9,9 @@ const GameTeamSchema = mongoose.Schema({
     type: mongoose.Schema.Types.ObjectId,
     ref: "Team"
   },
+  goals: {
+    type: Number
+  },
   creationDate: {
     type: Date,
     default: Date.now()
