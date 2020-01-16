@@ -3,7 +3,6 @@ const tournamentRouter = express.Router();
 const jwt = require("jsonwebtoken");
 const bcrypt = require("bcrypt");
 
-// const keys = require("../config/keys");
 const { checkToken, asyncMiddleware, checkAdmin } = require("../middleware");
 const { removeUserFromTournament } = require("./methods");
 const Tournament = require("../models/TournamentModel");

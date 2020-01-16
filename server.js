@@ -3,7 +3,6 @@ const mongoose = require("mongoose");
 const bodyParser = require("body-parser");
 const cors = require("cors");
 
-// const keys = require("./config/keys");
 require("dotenv").config()
 const { checkToken, errorHandler } = require("./middleware");
 const authRouter = require("./api/authRouter");
