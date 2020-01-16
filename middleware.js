@@ -1,5 +1,5 @@
 let jwt = require("jsonwebtoken");
-const keys = require("./config/keys.js");
+// const keys = require("./config/keys.js");
 const Tournament = require("./models/TournamentModel");
 const Team = require("./models/TeamModel");
 
@@ -16,7 +16,7 @@ let checkToken = (req, res, next) => {
       message: "Auth token is not supplied"
     });
   }
-  jwt.verify(token, keys.jwt.secret, (err, decoded) => {
+  jwt.verify(token, process.env.JWT_SECRET, (err, decoded) => {
     if (err) {
       return res.status(401).json({
         success: false,
@@ -46,7 +46,7 @@ let checkAdmin = async (req, res, next) => {
   return next();
 };
 
-errorHandler = function(err, req, res, next) {
+errorHandler = function (err, req, res, next) {
   // console.error(err.stack);
   console.error(err);
   res.status(err.status || 400).send({

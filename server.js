@@ -3,7 +3,8 @@ const mongoose = require("mongoose");
 const bodyParser = require("body-parser");
 const cors = require("cors");
 
-const keys = require("./config/keys");
+// const keys = require("./config/keys");
+require("dotenv").config()
 const { checkToken, errorHandler } = require("./middleware");
 const authRouter = require("./api/authRouter");
 const tournamentRouter = require("./api/tournamentRouter");
@@ -17,7 +18,7 @@ app.use(cors());
 app.use(bodyParser.urlencoded({ extended: true }));
 app.use(bodyParser.json());
 
-mongoose.connect(keys.mongodb.dbURI, {
+mongoose.connect(process.env.DB_URI, {
   useNewUrlParser: true,
   useUnifiedTopology: true
 });

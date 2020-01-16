@@ -3,7 +3,7 @@ const authRouter = express.Router();
 const jwt = require("jsonwebtoken");
 const bcrypt = require("bcrypt");
 
-const keys = require("../config/keys");
+// const keys = require("../config/keys");
 const { checkToken, asyncMiddleware } = require("../middleware");
 const User = require("../models/UserModel");
 
@@ -58,7 +58,7 @@ authRouter.post(
     console.log(newUser);
     res.status(201).send({
       success: true,
-      token: createToken(newUser, keys.jwt.secret, "24h")
+      token: createToken(newUser, process.env.JWT_SECRET, "24h")
     });
   })
 );
@@ -90,7 +90,7 @@ authRouter.post(
     }
     res.status(200).json({
       success: true,
-      token: createToken(user, keys.jwt.secret, "24h")
+      token: createToken(user, process.env.JWT_SECRET, "24h")
     });
   })
 );
