@@ -34,4 +34,4 @@ app.use("/teams", teamRouter);
 
 app.use(errorHandler);
 
-app.listen(5000, () => console.log("Now listening for requests on port 5000"));
+app.listen(process.env.PORT || 5000, () => console.log("Now listening for requests on port 5000"));
