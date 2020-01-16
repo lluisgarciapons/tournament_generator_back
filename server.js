@@ -20,7 +20,9 @@ app.use(bodyParser.json());
 mongoose.connect(process.env.DB_URI, {
   useNewUrlParser: true,
   useUnifiedTopology: true
-});
+}).catch(err => {
+  console.log(err)
+})
 mongoose.set("useCreateIndex", true);
 mongoose.set("useFindAndModify", false);
 
