@@ -4,8 +4,15 @@ const Team = require("../models/TeamModel");
 
 const methods = {
   deleteTeam: async team => {
-    //TODO delete team
     const tournament = await Tournament.findById(team.tournament);
+
+    team.players.forEach(player => {
+      tournament.teamlessPlayers.push({ player });
+    });
+
+    await tournament.save();
+
+    await team.deleteOne();
   },
 
   removeTeamLessPlayer: async (tournament, user) => {

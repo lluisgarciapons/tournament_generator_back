@@ -1,5 +1,4 @@
 let jwt = require("jsonwebtoken");
-// const keys = require("./config/keys.js");
 const Tournament = require("./models/TournamentModel");
 const Team = require("./models/TeamModel");
 
@@ -31,11 +30,12 @@ let checkToken = (req, res, next) => {
 };
 
 let checkAdmin = async (req, res, next) => {
-  const model = req.params.tournamentId ? Tournament : Team;
-  const id = req.params.tournamentId
-    ? req.params.tournamentId
-    : req.params.teamId;
+  const { tournamentId, teamId } = req.params;
+  const model = tournamentId ? Tournament : Team;
+  const id = tournamentId ? tournamentId : teamId;
+
   const event = await model.findById(id);
+  console.log(event);
 
   if (event.admin != req.user._id) {
     return next({

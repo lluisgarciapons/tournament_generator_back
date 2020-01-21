@@ -4,7 +4,7 @@ const jwt = require("jsonwebtoken");
 const bcrypt = require("bcrypt");
 
 const { checkToken, asyncMiddleware, checkAdmin } = require("../middleware");
-const { removeUserFromTournament } = require("./methods");
+const { removeUserFromTournament, deleteTeam } = require("./methods");
 const Tournament = require("../models/TournamentModel");
 const User = require("../models/UserModel");
 const Team = require("../models/TeamModel");
@@ -256,7 +256,14 @@ tournamentRouter.delete(
 
     let teams = await Team.find({ tournament: tournamentId });
 
-    teams.forEach(team => { });
+    teams.forEach(team => {
+      deleteTeam(team);
+    });
+
+    tournament.teamlessPlayers.forEach(async tlp => {
+      let player = await User.findById(tlp);
+      removeUserFromTournament(tournament, player);
+    })
   })
 );
 
