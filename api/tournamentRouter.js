@@ -261,9 +261,18 @@ tournamentRouter.delete(
     });
 
     tournament.teamlessPlayers.forEach(async tlp => {
-      let player = await User.findById(tlp);
+      let player = await User.findById(tlp.player);
       removeUserFromTournament(tournament, player);
     })
+
+    const tournamentTitle = tournament.title;
+
+    await tournament.deleteOne();
+
+    res.json({
+      success: true,
+      message: `The tournament \"${tournamentTitle}\" has been deleted successfully.`
+    });
   })
 );
 

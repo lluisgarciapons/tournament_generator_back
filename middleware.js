@@ -37,10 +37,17 @@ let checkAdmin = async (req, res, next) => {
   const event = await model.findById(id);
   console.log(event);
 
+  if (!event) {
+    return next({
+      status: 404,
+      message: `This ${tournamentId ? "Tournament" : "Team"} does not exist.`
+    })
+  }
+
   if (event.admin != req.user._id) {
     return next({
       status: 401,
-      message: "You are not authorized to modify this event"
+      message: "You are not authorized to modify this event."
     });
   }
   return next();
