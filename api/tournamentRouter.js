@@ -237,7 +237,8 @@ tournamentRouter.delete(
   checkToken,
   checkAdmin,
   asyncMiddleware(async (req, res, next) => {
-    const tournament = await Tournament.findById(req.params.tournamentId);
+    const { tournamentId } = req.params;
+    const tournament = await Tournament.findById(tournamentId);
     if (!tournament) {
       next({
         status: 404,
