@@ -237,7 +237,6 @@ tournamentRouter.delete(
   checkToken,
   checkAdmin,
   asyncMiddleware(async (req, res, next) => {
-    // TODO delete tournament and everything related to it.
     const tournament = await Tournament.findById(req.params.tournamentId);
     if (!tournament) {
       next({
