@@ -194,4 +194,6 @@ teamRouter.delete(
   })
 );
 
+// TODO create a delete Team that removes users from tournament
+
 module.exports = teamRouter;

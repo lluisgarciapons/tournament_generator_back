@@ -43,12 +43,12 @@ tournamentRouter.post(
       title,
       passcode,
       admin: req.user,
-      teamlessPlayers: [{ player: req.user._id }]
+      // teamlessPlayers: [{ player: req.user._id }]
     }).save();
 
-    // Add the new tournament Id to the user
-    user.tournaments.push(newTournament._id);
-    user.save();
+    // // Add the new tournament Id to the user
+    // user.tournaments.push(newTournament._id);
+    // user.save();
 
     res.status(201).json({
       success: true,
@@ -127,6 +127,106 @@ tournamentRouter.put(
     });
   })
 );
+
+
+tournamentRouter.put(
+  "/joinwithteam/:tournamentId",
+  checkToken,
+  asyncMiddleware(async (req, res, next) => {
+    const { tournamentId } = req.params
+    const { teamName, teamAbbr, teamMateUsername } = req.body;
+    let tournament = await Tournament.findById(tournamentId);
+    let user = await User.findById(req.user._id);
+    let teamMate = await User.findOne({ username: teamMateUsername });
+    let teamsOnTournament = await Team.find({ tournament: tournamentId });
+    console.log(teamsOnTournament)
+
+    if (!teamName, !teamAbbr, !teamMateUsername) {
+      return next({
+        status: 400,
+        message: "Please, fill in all required information."
+      });
+    }
+
+    const teamAlreadyExist = teamsOnTournament.some(team => {
+      return team.name.toUpperCase() == teamName.toUpperCase();
+    })
+    if (teamAlreadyExist) {
+      return next({
+        status: 403,
+        message: "Sorry, this team name already exists."
+      });
+    }
+
+    if (!teamMate) {
+      return next({
+        status: 404,
+        message: "Your teammate username does not exist."
+      });
+    }
+
+    const teamMateAlreadyInTeam = teamsOnTournament.some(team => {
+      return team.players.some(player => {
+        return player.equals(teamMate._id);
+      })
+    })
+    if (teamMateAlreadyInTeam) {
+      return next({
+        status: 403,
+        message: "Your teammate is already in a team."
+      });
+    }
+
+    if (!tournament) {
+      return next({
+        status: 404,
+        message: "This tournaments does not exist."
+      });
+    }
+
+    if (!tournament.state === "OPEN") {
+      return next({
+        status: 403,
+        message: "The registration to this tournament it's already closed."
+      });
+    }
+
+    const isInTournament =
+      user.tournaments.some(tournmnt => {
+        return tournmnt.equals(tournament._id);
+      })
+    if (isInTournament) {
+      return next({
+        status: 403,
+        message: "You are already in this tournament."
+      });
+    }
+
+    // Create new Team
+    const newTeam = await new Team({
+      name: teamName,
+      abbr: teamAbbr,
+      tournament: tournamentId,
+      players: [user._id, teamMate._id],
+      admin: user._id
+    }).save();
+
+    // Save tournament Id in user
+    user.tournaments.push(tournament._id);
+    await user.save();
+    // Save tournament Id in user
+    teamMate.tournaments.push(tournament._id);
+    await teamMate.save();
+
+    const createdTeam = await newTeam.save();
+
+    res.json({
+      success: true,
+      team: createdTeam
+    });
+
+
+  }))
 
 // Start a tournament
 // Private ADMIN
