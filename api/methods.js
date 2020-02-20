@@ -15,6 +15,22 @@ const methods = {
     await team.deleteOne();
   },
 
+  deleteTeamDirectly: async team => {
+    const tournament = await Tournament.findById(team.tournament);
+
+    team.players.forEach(player => {
+      const user = User.findById(player);
+      const index = user.tournaments.indexOf(tournament._id);
+      if (index > -1) {
+        user.tournaments.splice(index, 1);
+      }
+
+      await user.save()
+    })
+
+    await team.deleteOne();
+  },
+
   removeTeamLessPlayer: async (tournament, user) => {
     const player = tournament.teamlessPlayers.find(tlp =>
       tlp.player.equals(user._id)

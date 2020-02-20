@@ -1,7 +1,7 @@
 const express = require("express");
 const teamRouter = express.Router();
 const { checkToken, asyncMiddleware, checkAdmin } = require("../middleware");
-const { removeTeamLessPlayer, deleteTeam } = require("./methods");
+const { removeTeamLessPlayer, deleteTeam, deleteTeamDirectly } = require("./methods");
 const Team = require("../models/TeamModel");
 const Tournament = require("../models/TournamentModel");
 const User = require("../models/UserModel");
@@ -164,8 +164,6 @@ teamRouter.delete(
   checkToken,
   checkAdmin,
   asyncMiddleware(async (req, res, next) => {
-    console.log("in");
-
     const { teamId } = req.params;
     const team = await Team.findById(teamId);
     const tournament = await Tournament.findById(team.tournament);
@@ -194,6 +192,37 @@ teamRouter.delete(
   })
 );
 
-// TODO create a delete Team that removes users from tournament
+teamRouter.delete(
+  "/deletedirectly/:teamId",
+  checkToken,
+  checkAdmin,
+  asyncMiddleware(async (req, res, next) => {
+    const { teamId } = req.params;
+    const team = await Team.findById(teamId);
+    const tournament = await Tournament.findById(team.tournament);
+
+    if (tournament.state != "OPEN") {
+      return next({
+        status: 403,
+        message:
+          "The team can't be deleted because the tournament has already started."
+      });
+    }
+
+    if (!team) {
+      return next({
+        status: 404,
+        message: "This team doesn't exist."
+      });
+    }
+
+    await deleteTeamDirectly(team);
+
+    res.json({
+      success: true,
+      message: "Team deleted successfully."
+    });
+  }))
+
 
 module.exports = teamRouter;
