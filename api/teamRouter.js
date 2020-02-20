@@ -12,22 +12,46 @@ const User = require("../models/UserModel");
 teamRouter.get(
   "/",
   asyncMiddleware(async (req, res, next) => {
-    const teams = await Team.find({});
+    const teams = await Team.find({})
+      .populate("players", "-password")
+      .populate("tournament", "-passcode");
 
     res.json({ success: true, teams });
   })
 );
 
+// Get team by id
+// Public
 teamRouter.get(
   "/find/:teamId",
   asyncMiddleware(async (req, res, next) => {
-    const team = await Team.findById(req.params.teamId);
+    const team = await Team.findById(req.params.teamId)
+      .populate("players", "-password")
+      .populate("tournament", "-passcode");
+
     res.json({
       success: true,
       team
     });
   })
 );
+
+// Get your team
+// Private
+teamRouter.get(
+  "/findmyteams",
+  checkToken,
+  asyncMiddleware(async (req, res, next) => {
+    const teams = await Team.find({ players: req.user._id })
+      .populate("players", "-password")
+      .populate("tournament", "-passcode");
+
+    res.json({
+      success: true,
+      teams
+    });
+  })
+)
 
 // Create a team for an specific tournament
 // Private

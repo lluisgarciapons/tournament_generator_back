@@ -16,7 +16,9 @@ tournamentRouter.get(
   asyncMiddleware(async (req, res) => {
     const tournaments = await Tournament.find({}, null, {
       sort: "creationDate"
-    });
+    })
+      .populate("winner", "name")
+      .populate("admin", "username")
 
     return res.json({ success: true, tournaments });
   })
@@ -68,7 +70,8 @@ tournamentRouter.get(
       },
       null,
       { sort: "creationDate" }
-    );
+    )
+      .populate("admin", "username")
 
     res.status(200).json({
       success: true,

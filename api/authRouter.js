@@ -6,6 +6,7 @@ const bcrypt = require("bcrypt");
 // const keys = require("../config/keys");
 const { checkToken, asyncMiddleware } = require("../middleware");
 const User = require("../models/UserModel");
+const Team = require("../models/TeamModel")
 
 const createToken = (user, secret, expiresIn) => {
   const { _id } = user;
@@ -99,7 +100,9 @@ authRouter.get(
   "/currentUser",
   checkToken,
   asyncMiddleware(async (req, res, next) => {
-    const user = await User.findById(req.user._id);
+    const user = await User.findById(req.user._id)
+      .select("-password")
+      .populate("tournaments", "-passcode")
 
     if (!user) {
       return next({
@@ -110,12 +113,7 @@ authRouter.get(
     console.log(user);
     res.status(200).json({
       success: true,
-      user: {
-        _id: user._id,
-        username: user.username,
-        email: user.email,
-        avatar: user.avatar
-      }
+      user
     });
   })
 );

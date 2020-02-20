@@ -25,7 +25,7 @@ const methods = {
         user.tournaments.splice(index, 1);
       }
 
-      await user.save()
+      user.save()
     })
 
     await team.deleteOne();
