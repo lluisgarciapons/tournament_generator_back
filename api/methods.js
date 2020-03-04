@@ -1,6 +1,7 @@
 const Tournament = require("../models/TournamentModel");
 const User = require("../models/UserModel");
 const Team = require("../models/TeamModel");
+const Game = require("../models/GameModel")
 
 const methods = {
   deleteTeam: async team => {
@@ -51,6 +52,62 @@ const methods = {
 
     // Delete remaining teamlessPlayers from tournament
     methods.removeTeamLessPlayer(tournament, user);
+  },
+
+  isPowerOfTwo: numOfTeams => (numOfTeams & (numOfTeams - 1)) == 0,
+
+  findPwr: (numOfTeams) => {
+    let prevPwr, nextPwr;
+    for (let i = 0; Math.pow(2, i) <= numOfTeams * 2; i++) {
+      let pwr = Math.pow(2, i);
+      if (pwr == numOfTeams) {
+        prevPwr = pwr;
+        nextPwr = pwr;
+        break;
+      }
+
+      if (pwr > numOfTeams) {
+        prevPwr = Math.pow(2, i - 1);
+        nextPwr = pwr;
+        break;
+      }
+    }
+
+    return { prevPwr, nextPwr };
+  },
+
+  buildRounds: async (tournament) => {
+    const teams = await Team.find({ tournament: tournament._id });
+    const { prevPwr, nextPwr } = methods.findPwr(teams.length);
+    let perfectTournamentTeams = teams.length;
+    let round = 1;
+    if (!methods.isPowerOfTwo(teams.length)) {
+      let firstRoundGames = teams.length - prevPwr;
+      for (let k = 1; k < firstRoundGames + 1; k++) {
+        console.log(`create game: ${k}, round: ${round}`)
+        let game = new Game({
+          round,
+          game: k,
+          tournament: tournament._id
+        })
+        await game.save()
+      }
+      perfectTournamentTeams -= firstRoundGames;
+      round++;
+    }
+
+    for (let i = perfectTournamentTeams; i > 1; i = (i / 2)) {
+      for (let j = 1; j < (i / 2) + 1; j++) {
+        console.log(`create game: ${j}, round: ${round}`)
+        let game = new Game({
+          round,
+          game: j,
+          tournament: tournament._id
+        })
+        await game.save()
+      }
+      round++;
+    }
   }
 };
 

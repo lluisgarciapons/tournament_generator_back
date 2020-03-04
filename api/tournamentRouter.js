@@ -4,7 +4,7 @@ const jwt = require("jsonwebtoken");
 const bcrypt = require("bcrypt");
 
 const { checkToken, asyncMiddleware, checkAdmin } = require("../middleware");
-const { removeUserFromTournament, deleteTeam } = require("./methods");
+const { removeUserFromTournament, deleteTeam, buildRounds } = require("./methods");
 const Tournament = require("../models/TournamentModel");
 const User = require("../models/UserModel");
 const Team = require("../models/TeamModel");
@@ -243,14 +243,14 @@ tournamentRouter.put(
     if (!tournament) {
       return next({
         status: 404,
-        nessage: "This tournament does not exist."
+        message: "This tournament does not exist."
       });
     }
 
     if (tournament.state != "OPEN") {
       return next({
         status: 403,
-        nessage: "This tournament has already started."
+        message: "This tournament has already started."
       });
     }
     tournament.state = "ONGOING";
@@ -268,6 +268,10 @@ tournamentRouter.put(
     // Delete remaining teamlessPlayers from tournament
     tournament.teamlessPlayers = [];
     const startedTournament = await tournament.save();
+
+    // Create games
+    buildRounds(tournament);
+
     res.json({
       success: true,
       tournament: startedTournament

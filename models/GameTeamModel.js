@@ -12,6 +12,10 @@ const GameTeamSchema = mongoose.Schema({
   goals: {
     type: Number
   },
+  eliminated: {
+    type: Boolean,
+    default: false
+  },
   creationDate: {
     type: Date,
     default: Date.now()
